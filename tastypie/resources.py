@@ -2420,7 +2420,18 @@ class BaseModelResource(Resource):
                     related_resource.save(updated_related_bundle)
                 related_objs.append(updated_related_bundle.obj)
 
-            related_mngr.add(*related_objs)
+            if hasattr(related_mngr, 'through'):
+                through = getattr(related_mngr, 'through')
+                if not through._meta.auto_created:
+                    for related_obj in related_objs:
+                        through.objects.get_or_create(**{
+                             related_mngr.source_field_name: bundle.obj,
+                             related_mngr.target_field_name: related_obj
+                         })
+                else:
+                    related_mngr.add(*related_objs)
+            else:
+                related_mngr.add(*related_objs)
 
     def detail_uri_kwargs(self, bundle_or_obj):
         """
